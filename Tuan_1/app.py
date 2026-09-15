@@ -10,6 +10,12 @@ BOOKS = [
     {"id": "book-2", "t": "Kien truc huong dich vu"},
 ]
 
+ORDERS = {
+    "ord_1": {"status": "pending"},
+    "ord_2": {"status": "shipped"},
+    "ord_3": {"status": "delivered"},
+}
+
 
 def find_by_id(book_id):
     return next((b for b in BOOKS if b["id"] == book_id), None)
@@ -55,6 +61,20 @@ def list_books():
     q = request.args.get("q", "").strip().lower()
     items = [b for b in BOOKS if q in b["t"].lower()]
     return jsonify({"items": items}), 200
+
+@app.route("/orders/<id>", methods=["DELETE"])
+def delete_order(id):
+    order = ORDERS.get(id)
+
+    if order is None:
+        return {"error": "not found"}, 404
+
+    if order["status"] in ("shipped", "delivered"):
+        return {"error": "cannot delete"}, 409
+
+    ORDERS.pop(id, None)
+
+    return "", 204
 
 
 if __name__ == "__main__":
