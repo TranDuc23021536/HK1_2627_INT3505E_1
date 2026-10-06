@@ -1,6 +1,5 @@
 import logging
 import uuid
-
 from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 
@@ -8,7 +7,6 @@ ERROR_BASE = "https://api.example.com/probs"
 PROBLEM_JSON = "application/problem+json"
 
 log = logging.getLogger("api.errors")
-
 
 class ApiProblem(Exception):
     def __init__(self, status, title, detail=None, type_path=None, **extra):
@@ -22,7 +20,6 @@ class ApiProblem(Exception):
     def type(self):
         return f"{ERROR_BASE}/{self.type_path}" if self.type_path else "about:blank"
 
-
 def _problem(status, title, detail=None, type_path=None, trace_id=None, **extra):
     body = {
         "type": f"{ERROR_BASE}/{type_path}" if type_path else "about:blank",
@@ -34,6 +31,7 @@ def _problem(status, title, detail=None, type_path=None, trace_id=None, **extra)
     if detail:
         body["detail"] = detail
     body.update(extra)
+
     resp = jsonify(body)
     resp.status_code = status
     resp.headers["Content-Type"] = PROBLEM_JSON
@@ -46,6 +44,7 @@ def register_error_handlers(app):
     @app.errorhandler(HTTPException)
     def handle_http_exception(err):
         return _problem(err.code, err.name, err.description)
+
     @app.errorhandler(Exception)
     def handle_unexpected(err):
         trace_id = str(uuid.uuid4())
