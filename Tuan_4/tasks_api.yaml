@@ -1,0 +1,198 @@
+openapi: 3.0.3
+info: {title: Tasks API, version: 1.0.0, description: Quản lý task nội bộ}
+servers: [{url: 'http://localhost:5000/v1'}]
+security: [{bearerAuth: []}]
+tags: [{name: tasks}]
+paths:
+  /tasks:
+    get:
+      tags: [tasks]
+      operationId: listTasks
+      summary: Lấy danh sách task
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/StatusFilter'
+      responses:
+        '200': {$ref: '#/components/responses/TaskPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    post:
+      tags: [tasks]
+      operationId: createTask
+      summary: Tạo task mới
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateTaskInput'}
+            example:
+              title: Họp nhóm API team
+              priority: high
+              dueDate: '2026-10-15'
+              assigneeId: u-1001
+      responses:
+        '201': {$ref: '#/components/responses/Task'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /tasks/{taskId}:
+    parameters:
+      - in: path
+        name: taskId
+        required: true
+        schema: {type: string, format: uuid}
+        example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    get:
+      tags: [tasks]
+      operationId: getTaskById
+      summary: Lấy chi tiết một task
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [tasks]
+      operationId: patchTask
+      summary: Cập nhật một phần task
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateTaskInput'}
+            example:
+              status: done
+              priority: normal
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    delete:
+      tags: [tasks]
+      operationId: deleteTask
+      summary: Xoá task
+      security: [{bearerAuth: []}]
+      responses:
+        '204': {description: Xoá thành công, không có body}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PageLimit:
+      name: limit
+      in: query
+      description: Số task tối đa trả về
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+      example: 20
+    StatusFilter:
+      name: status
+      in: query
+      description: Lọc theo trạng thái
+      schema: {type: string, enum: [open, done]}
+      example: open
+  schemas:
+    Task:
+      type: object
+      required: [id, title, status]
+      properties:
+        id: {type: string, format: uuid, example: 3fa85f64-5717-4562-b3fc-2c963f66afa6}
+        title: {type: string, minLength: 1, example: Họp nhóm API team}
+        status: {type: string, enum: [open, done], example: open}
+        priority: {type: string, enum: [low, normal, high], example: high}
+        dueDate: {type: string, format: date, example: '2026-10-15'}
+        assigneeId: {type: string, example: u-1001}
+    TaskList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Task'}
+        total: {type: integer, example: 2}
+    CreateTaskInput:
+      type: object
+      required: [title]
+      properties:
+        title: {type: string, minLength: 1, example: Họp nhóm API team}
+        priority: {type: string, enum: [low, normal, high], default: normal, example: high}
+        dueDate: {type: string, format: date, example: '2026-10-15'}
+        assigneeId: {type: string, example: u-1001}
+    UpdateTaskInput:
+      type: object
+      minProperties: 1
+      properties:
+        title: {type: string, minLength: 1, example: Họp nhóm API team (dời lịch)}
+        status: {type: string, enum: [open, done], example: done}
+        priority: {type: string, enum: [low, normal, high], example: normal}
+        dueDate: {type: string, format: date, example: '2026-10-20'}
+        assigneeId: {type: string, example: u-1002}
+    Error:
+      type: object
+      required: [status, title]
+      properties:
+        title: {type: string, example: Task not found}
+        status: {type: integer, example: 404}
+        detail: {type: string, example: Không tìm thấy task với id đã cho}
+  responses:
+    TaskPage:
+      description: Danh sách task
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/TaskList'}
+          example:
+            items:
+              - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                title: Họp nhóm API team
+                status: open
+                priority: high
+                dueDate: '2026-10-15'
+                assigneeId: u-1001
+              - id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                title: Viết tài liệu OpenAPI
+                status: done
+                priority: normal
+                dueDate: '2026-10-10'
+                assigneeId: u-1002
+            total: 2
+    Task:
+      description: Thông tin một task
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Task'}
+          example:
+            id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            title: Họp nhóm API team
+            status: open
+            priority: high
+            dueDate: '2026-10-15'
+            assigneeId: u-1001
+    BadRequest:
+      description: Tham số không hợp lệ
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {title: Bad request, status: 400, detail: limit phải nằm trong khoảng 1 đến 100}
+    Unauthorized:
+      description: Thiếu hoặc sai Bearer token
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {title: Unauthorized, status: 401, detail: Thiếu hoặc sai Bearer token}
+    NotFound:
+      description: Không tìm thấy task
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {title: Task not found, status: 404, detail: Không tìm thấy task với id đã cho}
+    ValidationError:
+      description: Dữ liệu không hợp lệ
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {title: Validation error, status: 422, detail: title là bắt buộc}

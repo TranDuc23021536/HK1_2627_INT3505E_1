@@ -1,0 +1,378 @@
+{
+  "info": {
+    "name": "Bookstore API - Pagination",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "cursor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. List books - mặc định (cursor, sort=-id)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": []
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"20 items + cursor\", function () { const j = pm.response.json(); pm.expect(j.data.length).to.eql(20); pm.expect(j.pagination.strategy).to.eql(\"cursor\"); pm.expect(j.pagination.has_more).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Cursor - trang 1 (sort=-price,title, limit=5)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?sort=-price,title&limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "-price,title"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"có next_cursor\", function () { pm.expect(pm.response.json().pagination.next_cursor).to.be.a(\"string\"); });",
+              "pm.collectionVariables.set(\"cursor\", pm.response.json().pagination.next_cursor);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Cursor - trang tiếp theo (dùng {{cursor}})",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?sort=-price,title&limit=5&cursor={{cursor}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "-price,title"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            },
+            {
+              "key": "cursor",
+              "value": "{{cursor}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"không trùng trang trước\", function () { pm.expect(pm.response.json().data.length).to.be.above(0); });",
+              "pm.collectionVariables.set(\"cursor\", pm.response.json().pagination.next_cursor);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Offset - offset=10&limit=5",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?strategy=offset&offset=10&limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "strategy",
+              "value": "offset"
+            },
+            {
+              "key": "offset",
+              "value": "10"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"có total\", function () { const p = pm.response.json().pagination; pm.expect(p.total).to.be.a(\"number\"); pm.expect(p.offset).to.eql(10); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Filter genre=tech (offset)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?strategy=offset&genre=tech&limit=100",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "strategy",
+              "value": "offset"
+            },
+            {
+              "key": "genre",
+              "value": "tech"
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"toàn bộ là tech\", function () { pm.response.json().data.forEach(function (b) { pm.expect(b.category.slug).to.eql(\"tech\"); }); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Filter genre=tech + sort multi-key (cursor)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?genre=tech&sort=price,-title&limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "genre",
+              "value": "tech"
+            },
+            {
+              "key": "sort",
+              "value": "price,-title"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Lỗi - sort không hợp lệ",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?sort=foo",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "foo"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"error=bad_sort\", function () { pm.expect(pm.response.json().error).to.eql(\"bad_sort\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Lỗi - strategy không hợp lệ",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?strategy=page",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "strategy",
+              "value": "page"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"error=bad_strategy\", function () { pm.expect(pm.response.json().error).to.eql(\"bad_strategy\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Lỗi - cursor dùng với sort khác (chạy sau request 2/3)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/books?sort=price&cursor={{cursor}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "books"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "price"
+            },
+            {
+              "key": "cursor",
+              "value": "{{cursor}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 400\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"error=cursor_mismatch\", function () { pm.expect(pm.response.json().error).to.eql(\"cursor_mismatch\"); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
