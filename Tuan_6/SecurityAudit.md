@@ -21,11 +21,11 @@ Kiểm tra spec hợp lệ (trong PowerShell đã kích hoạt venv):
 
 ![BTVN - Swagger Editor](images/btvn-2-swagger.png)
 
-(images/btvn1.png)
+![BTVN1](images/btvn1.png)
 
-(images/btvn2.png)
+![BTVN2](images/btvn2.png)
 
-(images/btvn3.png)
+![BTVN3](images/btvn3.png)
 
 ### Phần 2 — Rà soát bảo mật (`SecurityAudit.md`)
 Điểm có thể lộ:
