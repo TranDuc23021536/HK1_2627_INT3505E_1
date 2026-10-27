@@ -1,0 +1,182 @@
+openapi: 3.0.3
+info:
+  title: Social Network API
+  version: 1.0.0
+servers:
+  - url: https://api.example.test
+paths:
+  /auth/login:
+    post:
+      summary: Đăng nhập, cấp access token và refresh token
+      operationId: login
+      security: []
+      x-required-scopes: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "400":
+          description: Body thiếu field hoặc sai định dạng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sai email hoặc mật khẩu (thông báo chung, không lộ tài khoản có tồn tại)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Vượt giới hạn số lần đăng nhập
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/refresh:
+    post:
+      summary: Đổi refresh token lấy access token mới
+      operationId: refreshToken
+      security:
+        - refreshAuth: []
+      x-required-scopes: []
+      description: Gửi refresh token trong header Authorization. Không cần scope, chỉ cần refresh token còn hiệu lực và chưa bị thu hồi.
+      responses:
+        "200":
+          description: Cấp access token mới
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessToken"
+        "401":
+          description: Thiếu, hết hạn, sai chữ ký hoặc đã bị thu hồi refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Dùng access token ở endpoint chỉ nhận refresh token (sai loại token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Vượt giới hạn số lần refresh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /posts/{id}:
+    get:
+      summary: Lấy một bài viết theo id
+      operationId: getPost
+      security:
+        - bearerAuth: []
+      x-required-scopes:
+        - posts:read
+      description: Cần scope posts:read. Bài viết riêng tư chỉ chủ bài hoặc người được chia sẻ mới xem được.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Trả về bài viết
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          description: Thiếu, hết hạn, sai chữ ký hoặc đã bị thu hồi access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Thiếu scope posts:read hoặc không có quyền xem bài viết này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Bài viết không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token, sống ngắn (ví dụ 15 phút)
+    refreshAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Refresh token, chỉ dùng cho POST /auth/refresh
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+    TokenPair:
+      type: object
+      required: [access, refresh]
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+    AccessToken:
+      type: object
+      required: [access]
+      properties:
+        access:
+          type: string
+    Post:
+      type: object
+      required: [id, author_id, content, visibility]
+      properties:
+        id:
+          type: integer
+        author_id:
+          type: integer
+        content:
+          type: string
+        visibility:
+          type: string
+          enum: [public, friends, private]
+        created_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
