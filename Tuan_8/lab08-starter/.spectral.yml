@@ -1,0 +1,45 @@
+
+extends:
+  - spectral:oas
+
+rules:
+  get-books-operation-id:
+    description: GET /books must have an operationId
+    message: "GET /books is missing operationId"
+    severity: error
+    given: $.paths['/books'].get
+    then:
+      field: operationId
+      function: truthy
+
+  delete-204-no-content:
+    description: DELETE 204 response must not define a response body
+    message: "204 response must not have a content body"
+    severity: error
+    given: $.paths['/books/{id}'].delete.responses['204']
+    then:
+      field: content
+      function: falsy
+
+  book-year-integer:
+    description: Book.year must be an integer
+    message: "Book.year must have type integer"
+    severity: error
+    given: $.components.schemas.Book.properties.year
+    then:
+      field: type
+      function: enumeration
+      functionOptions:
+        values:
+          - integer
+
+  response-200-schema-not-empty:
+    description: Response 200 object schema must have at least one property
+    message: "Response 200 schema must have at least one property"
+    severity: error
+    given: $.paths[*][*].responses['200'].content.application/json.schema.properties
+    then:
+      function: length
+      functionOptions:
+        min: 1
+
