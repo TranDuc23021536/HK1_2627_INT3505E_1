@@ -6,6 +6,7 @@ from flask import Flask
 from .config import DefaultConfig
 from .errors import register_error_handlers
 from .extensions import db, migrate
+from .orders import orders_bp
 from .products import products_bp
 
 
@@ -17,6 +18,7 @@ def create_app(config=None):
     migrate.init_app(app, db)
     register_error_handlers(app)
     app.register_blueprint(products_bp)
+    app.register_blueprint(orders_bp)
 
     @app.cli.command("init-db")
     def init_db():
